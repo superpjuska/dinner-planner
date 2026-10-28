@@ -205,7 +205,7 @@ function shopCalendar(){
   const month=first.toLocaleDateString(S.lang==="no"?"nb-NO":"en-GB",{month:"long",year:"numeric"});
   return `<div class="date-picker" role="group" aria-label="${U().chooseDate}"><div class="date-picker-head"><button type="button" class="ghost" data-shop-month="-1" aria-label="${U().prev}">‹</button><strong>${month.charAt(0).toUpperCase()+month.slice(1)}</strong><button type="button" class="ghost" data-shop-month="1" aria-label="${U().next}">›</button></div><div class="date-picker-grid">${days}</div></div>`;
 }
-function shoppingItems(meals){
+function shoppingGroups(meals){
   const groups=new Map(),units={
     g:["mass",1,"g"],gram:["mass",1,"g"],grams:["mass",1,"g"],kg:["mass",1000,"kg"],
     ml:["volume",1,"ml"],milliliter:["volume",1,"ml"],milliliters:["volume",1,"ml"],dl:["volume",100,"dl"],l:["volume",1000,"l"],liter:["volume",1000,"l"],liters:["volume",1000,"l"],
@@ -255,7 +255,7 @@ function shoppingItems(meals){
     if(/s$/i.test(name))return name;
     return name+"s";
   };
-  return [...groups.values()].map(item=>{
+  return [...groups.entries()].map(([gk,item])=>{
     let name=item.name;
     const quantityParts=[];
     for(const [unitKey,entry] of item.quantities){
@@ -273,16 +273,17 @@ function shoppingItems(meals){
       name+=` (${extraParts.join(", ")})`;
     }
     if(item.hasUnquantified&&quantityParts.length)name+=` (${U().unspecified})`;
-    return `${quantityParts.length?quantityParts.join(" + ")+" ":""}${name}`.trim();
+    return {k:gk,t:`${quantityParts.length?quantityParts.join(" + ")+" ":""}${name}`.trim()};
   });
 }
+const shoppingItems=meals=>shoppingGroups(meals).map(g=>g.t);
 function shoppingList(){
   const from=S.shopFrom||S.day,to=S.shopTo||S.day,all=A();
   const meals=Object.entries(S.pick).filter(([day,id])=>day>=from&&day<=to&&all.some(d=>d.id===id)).map(([day,id])=>({day,d:all.find(x=>x.id===id)}));
   const locale=S.lang==="no"?"nb-NO":"en-GB";
   const range=`${parse(from).toLocaleDateString(locale,{day:"numeric",month:"short",year:"numeric"})} – ${parse(to).toLocaleDateString(locale,{day:"numeric",month:"short",year:"numeric"})}`;
   const snap=S.shopItems!=null,ed=snap&&S.shopEdit,qa=v=>String(v).replace(/"/g,"&quot;");
-  const rows=snap?Object.entries(S.shopItems).sort((a,b)=>a[1].o-b[1].o).map(([k,x])=>({k,t:x.t})):shoppingItems(meals).map(t=>({k:encodeURIComponent(from+"|"+to+"|"+t),t}));
+  const rows=snap?Object.entries(S.shopItems).filter(([,x])=>!x.x).sort((a,b)=>a[1].o-b[1].o).map(([k,x])=>({k,t:x.t})):shoppingItems(meals).map(t=>({k:encodeURIComponent(from+"|"+to+"|"+t),t}));
   const li=r=>ed?`<li class="shop-edit"><input type="checkbox" data-shop-check="${r.k}"${S.shopChecked[r.k]?" checked":""}><input data-shop-item="${r.k}" value="${qa(r.t)}" aria-label="${U().shopItem}"><button class="ghost" data-shop-rm="${r.k}" aria-label="${U().shopRm}">✕</button></li>`:`<li><label><input type="checkbox" data-shop-check="${r.k}"${S.shopChecked[r.k]?" checked":""}> ${r.t}</label></li>`;
   const addRow=ed?`<li class="shop-edit"><div class="combo-box"><input id="shop-new" placeholder="${U().shopNew}" autocomplete="off"><button type="button" class="ghost" data-combo aria-label="${U().itemsPick}">▾</button><div class="combo-list" id="shop-combo" hidden>${Object.entries(S.groups).map(([id,g])=>`<button type="button" data-combo-group="${qa(id)}">📦 ${g.name} (${(g.items||[]).length})</button>`).join("")}${catalog().map(c=>`<button type="button" data-combo-pick="${qa(c.n)}">${c.n}</button>`).join("")}</div></div><button class="ghost" data-shop-add>${U().shopAdd}</button></li>`:"";
   return `<section class="shopping" id="shopping-list"${S.shopVisible?"":" hidden"}><h2>${U().shoppingFor(range)}</h2>${rows.length||ed?`<ul>${rows.map(li).join("")}${addRow}</ul>`:`<p class="empty">${U().noShopping}</p>`}${S.shopAsk?`<div class="shop-ask"><p>${U().archAsk}${SY.code?" "+U().delShopAll:""}</p><p style="display:flex;gap:8px;flex-wrap:wrap;margin:0"><button class="ghost" data-shop-archive>${U().archSave}</button><button class="ghost" data-shop-discard>${U().archDiscard}</button><button class="ghost" data-shop-cancel-del>${U().cancel}</button></p></div>`:`<p style="margin:18px 0 0;display:flex;gap:8px;flex-wrap:wrap">${ed?`<button class="ghost" data-shop-done>${U().shopDone}</button>`:`<button class="ghost" data-shop-edit>${U().shopEdit}</button>`}<button class="ghost" data-shop-delete>${U().delShop}</button></p>`}</section>`;
@@ -343,16 +344,16 @@ document.addEventListener("change",e=>{
     const k=s.dataset.shopItem,it=S.shopItems&&S.shopItems[k],t=shopEsc(s.value.trim());
     if(it){
       if(t){it.t=t;sPut("shop/items/"+k,it)}
-      else{delete S.shopItems[k];delete S.shopChecked[k];sPut("shop/items/"+k,null);sPut("shop/checked/"+sk(k),null);render()}
+      else{shopDrop(k);render()}
       saveShop();
     }
     return;
   }
   if(s.matches&&s.matches("input[data-shop-check]")){S.shopChecked[s.dataset.shopCheck]=s.checked;sPut("shop/checked/"+sk(s.dataset.shopCheck),s.checked?true:null);saveShop();return}
   if(!s.matches||!s.matches("select[data-other]")||!s.value)return;
-  const id=+s.value,d=S.day;
+  const id=+s.value,d=S.day;shopAdopt();
   S.pick[d]=id;S.sug[d]=[id,...(S.sug[d]||[]).filter(x=>x!==id).slice(0,2)];
-  save();sPut("pick/"+d,id);sPut("sug/"+d,S.sug[d]);render();
+  save();sPut("pick/"+d,id);sPut("sug/"+d,S.sug[d]);shopSync();render();
 });
 document.addEventListener("input",e=>{
   if(e.target.id==="shop-from")S.shopDraftFrom=e.target.value;
@@ -364,6 +365,7 @@ function render(){DAYS=U().days;FULL=U().full;document.documentElement.lang=S.la
 document.addEventListener("click",e=>{
   const b=e.target.closest("button");if(!b)return;
   const q=a=>b.hasAttribute("data-"+a);
+  const planBtn=q("pick")||q("clear")||q("del")||q("restore")||q("save");if(planBtn)shopAdopt(); /* dinner changes: update the shopping list afterwards */
   if(q("tab")){S.tab=b.dataset.tab;S.editId=null}
   else if(q("lang")){S.lang=b.dataset.lang;save();}
   else if(q("save")){if(!add())return;S.tab="all";}
@@ -426,7 +428,7 @@ document.addEventListener("click",e=>{
   else if(q("item-del")){const k=b.dataset.itemDel;if(S.cat[k]){delete S.cat[k];saveCat();sPut("cat/"+k,null)}}
   else if(q("shop-edit")){shopMigrate();S.shopEdit=true;saveShop()}
   else if(q("shop-done"))S.shopEdit=false;
-  else if(q("shop-rm")){const k=b.dataset.shopRm;if(S.shopItems){delete S.shopItems[k];delete S.shopChecked[k];sPut("shop/items/"+k,null);sPut("shop/checked/"+sk(k),null);saveShop()}}
+  else if(q("shop-rm")){const k=b.dataset.shopRm;if(S.shopItems){shopDrop(k);saveShop()}}
   else if(q("shop-add")){if(!shopAddItem())return;setTimeout(()=>{const i=document.getElementById("shop-new");if(i)i.focus()},0)}
   else if(q("shop-delete"))S.shopAsk=true;
   else if(q("shop-cancel-del"))S.shopAsk=false;
@@ -441,6 +443,7 @@ document.addEventListener("click",e=>{
   else if(q("arch-del")){if(!confirm(U().archDelAsk))return;const id=b.dataset.archDel;delete S.archive[id];saveArchive();sPut("archive/"+id,null)}
   else if(q("sync")){sConnect();return}
   else return;
+  if(planBtn)shopSync();
   render();
 });
 /* ===== shared online storage: Firebase Realtime Database via REST ===== */
@@ -464,11 +467,65 @@ const saveArchive=()=>{try{localStorage.setItem(AK,JSON.stringify(S.archive))}ca
 const SH=KEY+"-shop";
 S.shopItems=null;S.shopEdit=false; /* shopItems: null = old style list built live from the plan, object = saved list you can edit */
 const shopEsc=x=>x.replace(/[&<>"]/g,c=>"&#"+c.charCodeAt(0)+";");
+/* Lines built from the plan carry a link to their ingredient (a), the text that was generated (g) and the language (l).
+   That lets an update tell which lines a changed dinner really touches, and leave all the others (and their ticks) alone. */
+const shopHash=s=>{let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return(4294967296*(2097151&h2)+(h1>>>0)).toString(36)};
+const shopAutoId=k=>"a"+shopHash(k); /* same ingredient = same id on every device */
+function shopGen(from,to,lang){ /* what the plan needs for this range, written in the list's own language */
+  const keep=S.lang;S.lang=lang;
+  try{
+    const all=A(),meals=Object.entries(S.pick).filter(([day,id])=>day>=from&&day<=to&&all.some(d=>d.id===id)).map(([day,id])=>({day,d:all.find(x=>x.id===id)}));
+    return shoppingGroups(meals);
+  }finally{S.lang=keep}
+}
 function shopSnap(from,to){
-  const all=A(),meals=Object.entries(S.pick).filter(([day,id])=>day>=from&&day<=to&&all.some(d=>d.id===id)).map(([day,id])=>({day,d:all.find(x=>x.id===id)}));
-  const o={},b=Date.now().toString(36);
-  shoppingItems(meals).forEach((t,i)=>{o["i"+b+i]={t,o:i}});
+  const o={};
+  shopGen(from,to,S.lang).forEach((g,i)=>{o[shopAutoId(g.k)]={t:g.t,o:i,a:g.k,g:g.t,l:S.lang}});
   return o;
+}
+/* remove a line; one built from the plan stays as a hidden marker (x) so the next update does not bring it back */
+function shopDrop(k){
+  const it=S.shopItems&&S.shopItems[k];if(!it)return;
+  if(it.a)S.shopItems[k]={t:it.g||it.t,o:it.o,a:it.a,g:it.g||it.t,l:it.l,x:1};else delete S.shopItems[k];
+  sPut("shop/items/"+k,S.shopItems[k]||null);
+  delete S.shopChecked[k];sPut("shop/checked/"+sk(k),null);
+}
+/* lists made by an older version have no ingredient links: match their lines to the plan by text, before the plan changes */
+function shopAdopt(){
+  if(!S.shopping||S.shopItems==null||!S.shopFrom||!S.shopTo)return;
+  const left=Object.entries(S.shopItems).filter(([,x])=>x&&!x.a&&x.o<1e9);
+  if(!left.length)return;
+  const used=new Set(Object.values(S.shopItems).filter(x=>x&&x.a).map(x=>x.a));let n=0;
+  for(const lang of [S.lang,S.lang==="no"?"en":"no"]){
+    const gen=shopGen(S.shopFrom,S.shopTo,lang);
+    for(const [id,x] of left){
+      if(S.shopItems[id].a)continue;
+      const g=gen.find(y=>y.t===x.t&&!used.has(y.k));
+      if(g){used.add(g.k);S.shopItems[id]={...x,a:g.k,g:g.t,l:lang};sPut("shop/items/"+id,S.shopItems[id]);n++}
+    }
+  }
+  if(n)saveShop();
+}
+/* Bring the saved list in line with the plan for its date range.
+   Untouched lines keep their text and tick. Changed lines are updated and unticked, new ones added, ones no dinner needs any more removed.
+   Lines you added yourself are never touched. */
+function shopSync(){
+  if(!S.shopping||S.shopItems==null||!S.shopFrom||!S.shopTo)return false;
+  shopAdopt();
+  const items=S.shopItems,auto=Object.entries(items).filter(([,x])=>x&&x.a);
+  const lang=auto.length&&auto[0][1].l||S.lang,gen=shopGen(S.shopFrom,S.shopTo,lang),want=new Map(gen.map(g=>[g.k,g])),have=new Set();
+  let n=0,next=auto.reduce((m,[,x])=>Math.max(m,+x.o||0),-1)+1;
+  const unck=id=>{if(S.shopChecked[id]){delete S.shopChecked[id];sPut("shop/checked/"+sk(id),null)}};
+  for(const [id,x] of auto){
+    const g=want.get(x.a);
+    if(!g){delete items[id];sPut("shop/items/"+id,null);unck(id);n++;continue}
+    have.add(x.a);
+    if(x.g===g.t)continue; /* not touched by the change: leave text, tick and removed-state as they are */
+    items[id]={t:g.t,o:x.o,a:x.a,g:g.t,l:lang};sPut("shop/items/"+id,items[id]);unck(id);n++;
+  }
+  for(const g of gen)if(!have.has(g.k)){const id=shopAutoId(g.k);items[id]={t:g.t,o:next++,a:g.k,g:g.t,l:lang};sPut("shop/items/"+id,items[id]);n++}
+  if(n)saveShop();
+  return n>0;
 }
 /* old style list (built live from the plan) -> saved list; ticks are carried over */
 function shopMigrate(){
@@ -497,7 +554,7 @@ function archiveTab(){
   const ids=Object.keys(S.archive).sort((a,b)=>(S.archive[b].at||0)-(S.archive[a].at||0));
   if(!ids.length)return `<h2>${u.archTab}</h2><p class="empty">${u.archEmpty}</p>`;
   return `<h2>${u.archTab}</h2>`+ids.map(id=>{
-    const e=S.archive[id],its=e.items||{},ck=e.checked||{},keys=Object.keys(its).sort((a,b)=>its[a].o-its[b].o);
+    const e=S.archive[id],its=e.items||{},ck=e.checked||{},keys=Object.keys(its).filter(k=>!its[k].x).sort((a,b)=>its[a].o-its[b].o);
     return `<details><summary>${fd(e.from)} – ${fd(e.to)}<span class="tm">${keys.length} ${u.archItems}</span></summary><ul class="arch" style="margin:0;padding:0 16px 8px 34px">${keys.map(k=>`<li${ck[k]?' class="done"':""}>${ck[k]?"✓ ":""}${its[k].t}</li>`).join("")}</ul>${e.at?`<p class="sub" style="padding:0 16px;margin:0 0 8px">${u.archSaved} ${new Date(e.at).toLocaleDateString(loc)}</p>`:""}<p style="padding:0 16px 14px;margin:0;display:flex;gap:8px;flex-wrap:wrap"><button class="ghost" data-arch-use="${id}">${u.archUse}</button><button class="ghost" data-arch-del="${id}">${u.archDel}</button></p></details>`;
   }).join("");
 }
