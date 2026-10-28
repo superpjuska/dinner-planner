@@ -114,6 +114,9 @@ details .recipe{border:0;margin:0;padding:0 16px 16px;border-top:1px solid var(-
 .item-add{display:flex;gap:8px;margin:12px 0}.item-add input{flex:1;min-width:0;font:inherit;padding:8px 10px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:transparent;color:inherit}
 ul.items{list-style:none;padding:0;margin:0}ul.items li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 2px;border-bottom:1px solid var(--line)}ul.items li[hidden]{display:none}ul.items li small{opacity:.6}
 dialog.qty{border:1px solid var(--line);border-radius:14px;padding:18px;background:var(--bg);color:var(--ink);width:min(340px,90vw);box-sizing:border-box}dialog.qty::backdrop{background:rgba(0,0,0,.4)}dialog.qty h3{margin:0 0 2px;font-size:15px;opacity:.7}dialog.qty .qn{margin:0 0 12px;font-size:20px;font-weight:700}dialog.qty input{width:100%;box-sizing:border-box;font:inherit;padding:10px 12px;border:1px solid rgba(128,128,128,.5);border-radius:8px;background:transparent;color:inherit}dialog.qty .qb{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}dialog.qty .qok{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.off-row{display:flex;gap:8px;align-items:center;margin:8px 0}.off-row input,.off-row select{font:inherit;min-width:0}.off-row input{flex:1}
+.off-list{list-style:none;margin:12px 0;padding:0}.off-list li{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:6px 0}
+.off-list img{width:44px;height:44px;object-fit:contain;border-radius:6px;flex:none}.off-list .nm{flex:1;min-width:0}.off-list small{display:block;opacity:.7}.off-list b{white-space:nowrap}.off-was{text-decoration:line-through;opacity:.6;font-weight:400;margin-left:6px}
 </style>
 </head>
 <body>
@@ -360,7 +363,7 @@ document.addEventListener("input",e=>{
   else if(e.target.id==="shop-to")S.shopDraftTo=e.target.value;
 });
 function render(){DAYS=U().days;FULL=U().full;document.documentElement.lang=S.lang==="no"?"nb-NO":"en-GB";document.title=U().title;
-  document.getElementById("app").innerHTML=`<div class="bar"><h1>${U().title}</h1><div class="lang" role="group" aria-label="Language">${FBON?`<button class="sync${SY.code?"":" off"}" data-sync aria-label="${U().syncTip}">${sLabel()}</button>`:""}<button data-lang="en" class="${S.lang==="en"?"on":""}">EN</button><button data-lang="no" class="${S.lang==="no"?"on":""}">NO</button></div></div><div class="tabs"><button data-tab="plan" class="${S.tab==="plan"?"on":""}">${U().plan}</button><button data-tab="all" class="${S.tab==="all"?"on":""}">${U().all} (${A().length})</button><button data-tab="add" class="${S.tab==="add"?"on":""}">${U().add}</button><button data-tab="items" class="${S.tab==="items"?"on":""}">${U().itemsTab} (${catalog().length})</button><button data-tab="archive" class="${S.tab==="archive"?"on":""}">${U().archTab}${Object.keys(S.archive).length?` (${Object.keys(S.archive).length})`:""}</button></div>`+(S.tab==="plan"?plan():S.tab==="add"?form():S.tab==="archive"?archiveTab():S.tab==="items"?itemsTab():all());
+  document.getElementById("app").innerHTML=`<div class="bar"><h1>${U().title}</h1><div class="lang" role="group" aria-label="Language">${FBON?`<button class="sync${SY.code?"":" off"}" data-sync aria-label="${U().syncTip}">${sLabel()}</button>`:""}<button data-lang="en" class="${S.lang==="en"?"on":""}">EN</button><button data-lang="no" class="${S.lang==="no"?"on":""}">NO</button></div></div><div class="tabs"><button data-tab="plan" class="${S.tab==="plan"?"on":""}">${U().plan}</button><button data-tab="all" class="${S.tab==="all"?"on":""}">${U().all} (${A().length})</button><button data-tab="add" class="${S.tab==="add"?"on":""}">${U().add}</button><button data-tab="items" class="${S.tab==="items"?"on":""}">${U().itemsTab} (${catalog().length})</button><button data-tab="offers" class="${S.tab==="offers"?"on":""}">${U().offTab}</button><button data-tab="archive" class="${S.tab==="archive"?"on":""}">${U().archTab}${Object.keys(S.archive).length?` (${Object.keys(S.archive).length})`:""}</button></div>`+(S.tab==="plan"?plan():S.tab==="add"?form():S.tab==="archive"?archiveTab():S.tab==="items"?itemsTab():S.tab==="offers"?offersTab():all());
 }
 document.addEventListener("click",e=>{
   const b=e.target.closest("button");if(!b)return;
@@ -760,6 +763,95 @@ function sConnect(){
   if(c!==SY.code){SY.code=c;SY.q=[];SY.seeded=false;SY.tried=false;SY.state="wait";saveSY()}
   sUi();sStream();sNow();
 }
+/* ===== Offers tab: current prices from Kassal.app (free API key, kept only in this browser) ===== */
+Object.assign(UI.en,{offTab:"Offers",offSub:"Current grocery prices from Kassal.app. Search for an item, compare stores and add it to your shopping list.",offKeyL:"Kassal.app API key",offKeyHelp:"Free from <a href=\"https://kassal.app/api\" target=\"_blank\" rel=\"noopener\">kassal.app/api</a>. The key is stored only in this browser and is not shared with your family code.",offSave:"Save",offProxyL:"Proxy address (optional)",offProxyHelp:"Only needed if the browser blocks direct requests to Kassal.app. Paste the address of your proxy.",offChange:"Settings",offPh:"Search items, e.g. milk",offSearch:"Search",offAll:"All stores",offSortRel:"Best match",offSortPrice:"Lowest price",offSortUnit:"Lowest unit price",offNone:"No products found.",offLoading:"Loading...",offAdd:"Add",offNeedList:"Create a shopping list with items first (Calendar tab).",offListTitle:"Prices for my shopping list",offListSub:"Finds the lowest unit price for each unchecked item. Takes about a second per item.",offListBtn:"Check my list",offNoHit:"No match found",offKeyErr:"The API key was rejected. Check it and try again.",offRateErr:"Too many requests. Wait a minute and try again.",offHttpErr:"Kassal.app returned an error. Try again later.",offNetErr:"Could not reach Kassal.app. Check your connection. If the browser blocks direct requests, add a proxy address under Settings."});
+Object.assign(UI.no,{offTab:"Tilbud",offSub:"Aktuelle dagligvarepriser fra Kassal.app. Søk etter en vare, sammenlign butikker og legg den på handlelisten.",offKeyL:"API-nøkkel fra Kassal.app",offKeyHelp:"Gratis fra <a href=\"https://kassal.app/api\" target=\"_blank\" rel=\"noopener\">kassal.app/api</a>. Nøkkelen lagres bare i denne nettleseren og deles ikke via familiekoden.",offSave:"Lagre",offProxyL:"Proxy-adresse (valgfritt)",offProxyHelp:"Trengs bare hvis nettleseren blokkerer direkte forespørsler til Kassal.app. Lim inn adressen til proxyen din.",offChange:"Innstillinger",offPh:"Søk etter varer, f.eks. melk",offSearch:"Søk",offAll:"Alle butikker",offSortRel:"Beste treff",offSortPrice:"Laveste pris",offSortUnit:"Laveste kilopris/literpris",offNone:"Fant ingen produkter.",offLoading:"Laster...",offAdd:"Legg til",offNeedList:"Lag en handleliste med varer først (Kalender).",offListTitle:"Priser for handlelisten min",offListSub:"Finner laveste enhetspris for hver varer som ikke er huket av. Tar ca. ett sekund per vare.",offListBtn:"Sjekk listen min",offNoHit:"Ingen treff",offKeyErr:"API-nøkkelen ble avvist. Sjekk den og prøv igjen.",offRateErr:"For mange forespørsler. Vent et minutt og prøv igjen.",offHttpErr:"Kassal.app svarte med en feil. Prøv igjen senere.",offNetErr:"Fikk ikke kontakt med Kassal.app. Sjekk tilkoblingen. Hvis nettleseren blokkerer direkte forespørsler, legg inn en proxy-adresse under Innstillinger."});
+const OK=KEY+"-kassal",OFD="https://kassal.app/api/v1",OF={key:"",base:OFD},offCache={};
+try{const x=JSON.parse(localStorage.getItem(OK)||"null");if(x){OF.key=x.key||"";if(x.base)OF.base=x.base}}catch(e){}
+const saveOF=()=>{try{localStorage.setItem(OK,JSON.stringify({key:OF.key,base:OF.base}))}catch(e){}};
+S.off={q:"",res:null,busy:false,err:"",store:"",sort:"rel",list:null,listBusy:false,done:new Set(),shown:[]};
+const offRender=()=>{if(S.tab==="offers")render()};
+const offQa=v=>String(v).replace(/"/g,"&quot;");
+const offNum=n=>n==null||isNaN(+n)?null:+n;
+const offPr=p=>{const c=p.current_price;return offNum(c&&typeof c==="object"?c.price:c)};
+const offUp=p=>{const c=p.current_price;return offNum(p.current_unit_price!=null?p.current_unit_price:(c&&typeof c==="object"?c.unit_price:null))};
+const offUl=p=>/^(g|kg)$/i.test(p.weight_unit||"")?"kg":/^(ml|dl|l)$/i.test(p.weight_unit||"")?"l":"";
+const offFmt=n=>n==null?"–":n.toLocaleString(S.lang==="no"?"nb-NO":"en-GB",{minimumFractionDigits:2,maximumFractionDigits:2})+" kr";
+const offStore=p=>p.store&&p.store.name||"";
+function offWas(p){ /* the price before the latest drop, when the API sends price history */
+  const c=offPr(p),h=(Array.isArray(p.price_history)?p.price_history:[]).filter(x=>x&&x.price>0).sort((a,b)=>String(b.date).localeCompare(String(a.date))),prev=h.find(x=>x.price!==c);
+  return prev&&c&&prev.price>c?prev.price:null;
+}
+function offBest(res,n){ /* lowest unit price among products whose name contains the item */
+  const w=n.toLowerCase(),ok=res.filter(p=>offPr(p)>0),m=ok.filter(p=>p.name.toLowerCase().includes(w)),pool=m.length?m:ok,k=p=>offUp(p)||offPr(p);
+  return pool.reduce((b,p)=>!b||k(p)<k(b)?p:b,null);
+}
+const offName=t=>ingName(String(t).replace(/&#\d+;/g,"").replace(/\s*\([^)]*\)/g,"")).toLowerCase();
+async function offGet(q){
+  const k=q.toLowerCase(),c=offCache[k];if(c&&Date.now()-c.t<6e5)return c.r;
+  let t;const r=await Promise.race([fetch(OF.base+"/products?"+new URLSearchParams({search:q,size:50}),{headers:{Authorization:"Bearer "+OF.key,Accept:"application/json"}}),new Promise((_,rej)=>{t=setTimeout(()=>rej(new Error("timeout")),10000)})]).finally(()=>clearTimeout(t)); /* no AbortSignal: some embedded previews cannot pass it on */
+  if(r.status===401||r.status===403)throw "key";if(r.status===429)throw "rate";if(!r.ok)throw "http";
+  const j=await r.json(),res=(j.data||[]).filter(p=>p&&p.name);offCache[k]={t:Date.now(),r:res};return res;
+}
+const offErr=e=>{const m=({key:U().offKeyErr,rate:U().offRateErr,http:U().offHttpErr})[e];if(m)return m;console.error("Offers:",e);return U().offNetErr+" ["+shopEsc(String(e&&e.message||e)+" | "+OF.base)+"]"};
+async function offSearch(){
+  const o=S.off,el=document.getElementById("off-q");if(el)o.q=el.value.trim();
+  if(!o.q)return;
+  o.busy=true;o.err="";o.store="";o.done=new Set();offRender();
+  try{o.res=await offGet(o.q)}catch(e){o.res=null;o.err=offErr(e)}
+  o.busy=false;offRender();
+}
+async function offList(){
+  const o=S.off;o.err="";
+  const names=S.shopItems?[...new Set(Object.entries(S.shopItems).filter(([k,x])=>!x.x&&!S.shopChecked[k]).map(([,x])=>offName(x.t)).filter(Boolean))].slice(0,40):[];
+  if(!names.length){o.err=U().offNeedList;render();return}
+  o.list=[];o.listBusy=true;offRender();
+  for(const n of names){
+    const c=offCache[n],hit=c&&Date.now()-c.t<6e5;
+    try{o.list.push({n,p:offBest(await offGet(n),n)})}catch(e){o.err=offErr(e);break}
+    offRender();if(!hit)await new Promise(r=>setTimeout(r,1000)); /* the free key allows 60 requests a minute */
+  }
+  o.listBusy=false;offRender();
+}
+function offRow(p,i){
+  const o=S.off,c=offPr(p),w=offWas(p),u=offUp(p),ul=offUl(p),dn=o.done.has(i);
+  return `<li>${p.image?`<img src="${offQa(p.image)}" alt="" loading="lazy">`:""}<div class="nm">${shopEsc(p.name)}<small>${shopEsc(offStore(p))}${u?" · "+offFmt(u)+(ul?"/"+ul:""):""}</small></div><b>${offFmt(c)}${w?`<span class="off-was">${offFmt(w)}</span>`:""}</b><button class="ghost" data-off-add="${i}"${dn?" disabled":""}>${dn?"✓":U().offAdd}</button></li>`;
+}
+function offersTab(){
+  const u=U(),o=S.off;
+  let h=`<h2>${u.offTab}</h2><p class="sub">${u.offSub}</p>`;
+  if(!OF.key||o.cfg)return h+`<div class="form"><label>${u.offKeyL}<input id="off-key" type="password" autocomplete="off" value="${offQa(OF.key)}"></label><p class="sub">${u.offKeyHelp}</p><label>${u.offProxyL}<input id="off-proxy" inputmode="url" autocomplete="off" placeholder="https://kassal-proxy.yourname.workers.dev" value="${offQa(OF.base===OFD?"":OF.base)}"></label><p class="sub">${u.offProxyHelp}</p><button class="ghost save" data-off-key>${u.offSave}</button></div>`;
+  let rows=o.res||[];
+  const stores=[...new Set(rows.map(offStore).filter(Boolean))].sort();
+  if(o.store)rows=rows.filter(p=>offStore(p)===o.store);
+  if(o.sort==="price")rows=[...rows].sort((a,b)=>(offPr(a)??1e9)-(offPr(b)??1e9));
+  else if(o.sort==="unit")rows=[...rows].sort((a,b)=>(offUp(a)??1e9)-(offUp(b)??1e9));
+  o.shown=rows;
+  h+=`<div class="off-row"><input id="off-q" placeholder="${offQa(u.offPh)}" value="${offQa(o.q)}" autocomplete="off" enterkeyhint="search"><button class="ghost" data-off-search>${u.offSearch}</button></div>`;
+  if(o.res)h+=`<div class="off-row"><select id="off-store"><option value="">${u.offAll}</option>${stores.map(s=>`<option${s===o.store?" selected":""}>${shopEsc(s)}</option>`).join("")}</select><select id="off-sort"><option value="rel"${o.sort==="rel"?" selected":""}>${u.offSortRel}</option><option value="price"${o.sort==="price"?" selected":""}>${u.offSortPrice}</option><option value="unit"${o.sort==="unit"?" selected":""}>${u.offSortUnit}</option></select></div>`;
+  if(o.err)h+=`<p class="err" role="alert">${o.err}</p>`;
+  if(o.busy)h+=`<p class="empty">${u.offLoading}</p>`;
+  else if(o.res)h+=rows.length?`<ul class="off-list">${rows.map(offRow).join("")}</ul>`:`<p class="empty">${u.offNone}</p>`;
+  h+=`<h3>${u.offListTitle}</h3><p class="sub">${u.offListSub}</p><button class="ghost" data-off-list${o.listBusy?" disabled":""}>${o.listBusy?u.offLoading:u.offListBtn}</button>`;
+  if(o.list)h+=`<ul class="off-list">${o.list.map(x=>x.p?`<li><div class="nm">${shopEsc(x.n.charAt(0).toUpperCase()+x.n.slice(1))}<small>${shopEsc(x.p.name)} · ${shopEsc(offStore(x.p))}</small></div><b>${offFmt(offPr(x.p))}</b></li>`:`<li><div class="nm">${shopEsc(x.n.charAt(0).toUpperCase()+x.n.slice(1))}<small>${u.offNoHit}</small></div></li>`).join("")}</ul>`;
+  return h+`<p><button class="ghost" data-off-clear>${u.offChange}</button></p>`;
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  const a=n=>b.hasAttribute("data-off-"+n),o=S.off;
+  if(a("search"))offSearch();
+  else if(a("list"))offList();
+  else if(a("key")){
+    const v=(document.getElementById("off-key")||{value:""}).value.trim();let px=(document.getElementById("off-proxy")||{value:""}).value.trim().replace(/\/+$/,"");
+    if(px&&!/^https?:\/\//i.test(px))px="https://"+px;
+    if(v)OF.key=v;OF.base=px||OFD;saveOF();o.cfg=!OF.key;o.res=null;o.list=null;o.err="";for(const k in offCache)delete offCache[k];render();
+  }
+  else if(a("clear")){o.cfg=true;render()}
+  else if(a("add")){const i=+b.dataset.offAdd,p=o.shown[i];if(!p)return;if(shopPush(shopEsc(`${p.name} (${offStore(p)}, ${offFmt(offPr(p))})`))){o.done.add(i);o.err=""}else o.err=U().offNeedList;render()}
+});
+document.addEventListener("input",e=>{if(e.target.id==="off-q")S.off.q=e.target.value});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="off-q"){e.preventDefault();offSearch()}});
+document.addEventListener("change",e=>{const s=e.target;if(s.id==="off-store"){S.off.store=s.value;S.off.done=new Set();render()}else if(s.id==="off-sort"){S.off.sort=s.value;S.off.done=new Set();render()}});
 render();
 if(FBON){
   if(!SY.code&&!SY.asked)setTimeout(()=>{SY.asked=true;saveSY();sConnect()},600);
