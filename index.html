@@ -722,6 +722,11 @@ function sApply(d){
   }
   if(cj(ra)!==cj(S.archive)){S.archive=ra;saveArchive();SY.dirty=true}
   if(cj(rc)!==cj(S.cat)){S.cat=rc;saveCat();SY.dirty=true}
+  /* Product links follow the shared family code, not just this browser. Cloud values win on conflicts. */
+  const remoteLinks=Object.fromEntries(sEnts(d.offLinks).filter(e=>e[1]&&typeof e[1].name==="string").map(([k,v])=>[sd(k),v]));
+  const mergedLinks={...offLinks,...remoteLinks};
+  for(const k in offLinks)if(!(k in remoteLinks))sPut("offLinks/"+sk(k),offLinks[k]);
+  if(cj(mergedLinks)!==cj(offLinks)){offLinks=mergedLinks;try{localStorage.setItem(OFFLINKKEY,JSON.stringify(offLinks))}catch(e){}}
 }
 /* live connection: the server pushes a message the moment anything changes, then we fetch it */
 function sStream(){
@@ -764,15 +769,17 @@ function sConnect(){
   sUi();sStream();sNow();
 }
 /* ===== Offers tab: current prices from Kassal.app (free API key, kept only in this browser) ===== */
-Object.assign(UI.en,{offTab:"Prices",offSub:"Current grocery prices from Kassal.app. Search for an item, compare stores and add it to your shopping list.",offKeyL:"Kassal.app API key (optional)",offKeyHelp:"Free from <a href=\"https://kassal.app/api\" target=\"_blank\" rel=\"noopener\">kassal.app/api</a>. Not needed if your proxy already holds the key. Stored only in this browser, not shared with your family code.",offSave:"Save",offProxyL:"Proxy address (optional)",offProxyHelp:"Leave empty to use the built-in proxy.",offChange:"Settings",offPh:"Search items, e.g. milk",offSearch:"Search",offAll:"All stores",offSortRel:"Best match",offSortPrice:"Lowest price",offSortUnit:"Lowest unit price",offNone:"No products found.",offLoading:"Loading...",offAdd:"Add",offNeedList:"Create a shopping list with items first (Calendar tab).",offListTitle:"Prices for my shopping list",offListSub:"Finds the lowest unit price for each unchecked item. Takes about a second per item.",offListBtn:"Check my list",offNoHit:"No match found",offKeyErr:"The API key was rejected. Check it and try again.",offRateErr:"Too many requests. Wait a minute and try again.",offHttpErr:"Kassal.app returned an error. Try again later.",offNetErr:"Could not reach Kassal.app. Check your connection. The proxy address under Settings may also be wrong."});
-Object.assign(UI.no,{offTab:"Priser",offSub:"Aktuelle dagligvarepriser fra Kassal.app. Søk etter en vare, sammenlign butikker og legg den på handlelisten.",offKeyL:"API-nøkkel fra Kassal.app (valgfritt)",offKeyHelp:"Gratis fra <a href=\"https://kassal.app/api\" target=\"_blank\" rel=\"noopener\">kassal.app/api</a>. Trengs ikke hvis proxyen allerede har nøkkelen. Lagres bare i denne nettleseren og deles ikke via familiekoden.",offSave:"Lagre",offProxyL:"Proxy-adresse (valgfritt)",offProxyHelp:"La stå tom for å bruke den innebygde proxyen.",offChange:"Innstillinger",offPh:"Søk etter varer, f.eks. melk",offSearch:"Søk",offAll:"Alle butikker",offSortRel:"Beste treff",offSortPrice:"Laveste pris",offSortUnit:"Laveste kilopris/literpris",offNone:"Fant ingen produkter.",offLoading:"Laster...",offAdd:"Legg til",offNeedList:"Lag en handleliste med varer først (Kalender).",offListTitle:"Priser for handlelisten min",offListSub:"Finner laveste enhetspris for hver varer som ikke er huket av. Tar ca. ett sekund per vare.",offListBtn:"Sjekk listen min",offNoHit:"Ingen treff",offKeyErr:"API-nøkkelen ble avvist. Sjekk den og prøv igjen.",offRateErr:"For mange forespørsler. Vent et minutt og prøv igjen.",offHttpErr:"Kassal.app svarte med en feil. Prøv igjen senere.",offNetErr:"Fikk ikke kontakt med Kassal.app. Sjekk tilkoblingen. Proxy-adressen under Innstillinger kan også være feil."});
-const OK=KEY+"-kassal",OFD="https://kassal.app/api/v1",OFP="https://kassa-proxy.dndf97rfy4.workers.dev",offCache={};
+Object.assign(UI.en,{offTab:"Prices",offSub:"Current grocery prices from Kassal.app. Search for an item, compare stores and add it to your shopping list.",offKeyL:"Kassal.app API key (optional)",offKeyHelp:"Free from <a href=\"https://kassal.app/api\" target=\"_blank\" rel=\"noopener\">kassal.app/api</a>. Not needed if your proxy already holds the key. Stored only in this browser, not shared with your family code.",offSave:"Save",offProxyL:"Proxy address (optional)",offProxyHelp:"Leave empty to use the built-in proxy.",offChange:"Settings",offPh:"Search items, e.g. milk",offSearch:"Search",offAll:"All stores",offSortRel:"Best match",offSortPrice:"Lowest price",offSortUnit:"Lowest unit price",offNone:"No products found.",offLoading:"Loading...",offAdd:"Add",offNeedList:"Create a shopping list with items first (Calendar tab).",offListTitle:"Prices for my shopping list",offListSub:"Finds the lowest unit price for each unchecked item. Takes about a second per item.",offListBtn:"Check my list",offNoHit:"No match found",offSearchLink:"Search",offLinkPermanent:"Link permanently",offLinkingFor:"Choose the correct product to link to",offLinked:"Linked permanently",offManageLinks:"Manage saved links",offEditLink:"Edit",offSavedLinks:"Saved product links",offNoSavedLinks:"No saved links yet.",offEditSearch:"Search for a replacement product",offKeyErr:"The API key was rejected. Check it and try again.",offRateErr:"Too many requests. Wait a minute and try again.",offHttpErr:"Kassal.app returned an error. Try again later.",offNetErr:"Could not reach Kassal.app. Check your connection. The proxy address under Settings may also be wrong."});
+Object.assign(UI.no,{offTab:"Priser",offSub:"Aktuelle dagligvarepriser fra Kassal.app. Søk etter en vare, sammenlign butikker og legg den på handlelisten.",offKeyL:"API-nøkkel fra Kassal.app (valgfritt)",offKeyHelp:"Gratis fra <a href=\"https://kassal.app/api\" target=\"_blank\" rel=\"noopener\">kassal.app/api</a>. Trengs ikke hvis proxyen allerede har nøkkelen. Lagres bare i denne nettleseren og deles ikke via familiekoden.",offSave:"Lagre",offProxyL:"Proxy-adresse (valgfritt)",offProxyHelp:"La stå tom for å bruke den innebygde proxyen.",offChange:"Innstillinger",offPh:"Søk etter varer, f.eks. melk",offSearch:"Søk",offAll:"Alle butikker",offSortRel:"Beste treff",offSortPrice:"Laveste pris",offSortUnit:"Laveste kilopris/literpris",offNone:"Fant ingen produkter.",offLoading:"Laster...",offAdd:"Legg til",offNeedList:"Lag en handleliste med varer først (Kalender).",offListTitle:"Priser for handlelisten min",offListSub:"Finner laveste enhetspris for hver varer som ikke er huket av. Tar ca. ett sekund per vare.",offListBtn:"Sjekk listen min",offNoHit:"Ingen treff",offSearchLink:"Søk",offLinkPermanent:"Koble permanent",offLinkingFor:"Velg riktig vare for å koble den permanent",offLinked:"Permanent koblet",offManageLinks:"Rediger lagrede koblinger",offEditLink:"Rediger",offSavedLinks:"Lagrede varekoblinger",offNoSavedLinks:"Ingen lagrede koblinger ennå.",offEditSearch:"Søk etter en annen vare",offKeyErr:"API-nøkkelen ble avvist. Sjekk den og prøv igjen.",offRateErr:"For mange forespørsler. Vent et minutt og prøv igjen.",offHttpErr:"Kassal.app svarte med en feil. Prøv igjen senere.",offNetErr:"Fikk ikke kontakt med Kassal.app. Sjekk tilkoblingen. Proxy-adressen under Innstillinger kan også være feil."});
+const OK=KEY+"-kassal",OFD="https://kassal.app/api/v1",OFP="https://kassa-proxy.dndf97rfy4.workers.dev",offCache={},OFFLINKKEY=KEY+"-kassal-product-links";
+let offLinks={};try{offLinks=JSON.parse(localStorage.getItem(OFFLINKKEY)||"{}")||{}}catch(e){offLinks={}}
+const offNorm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9æøå]+/g," ").trim();
 /* API key embedded for convenience. Anyone with access to this HTML can read the key. */
 const DEFAULT_KASSAL_API_KEY="WUT4O8kLms44zhKusF0Nefn2U2sflx4XvFyiadep8df14b31";
 const OF={key:DEFAULT_KASSAL_API_KEY,base:OFP};
 try{const x=JSON.parse(localStorage.getItem(OK)||"null");if(x){if(typeof x.key==="string"&&x.key.trim())OF.key=x.key;if(x.base&&x.base!==OFD)OF.base=x.base}}catch(e){}
 const saveOF=()=>{try{localStorage.setItem(OK,JSON.stringify({key:OF.key,base:OF.base}))}catch(e){}};
-S.off={q:"",res:null,busy:false,err:"",store:"",sort:"rel",list:null,listBusy:false,done:new Set(),shown:[]};
+S.off={q:"",res:null,busy:false,err:"",store:"",sort:"rel",list:null,listBusy:false,done:new Set(),shown:[],linkFor:"",manageLinks:false,editKey:""};
 const offRender=()=>{if(S.tab==="offers")render()};
 const offQa=v=>String(v).replace(/"/g,"&quot;");
 const offHdr=()=>{const h={Accept:"application/json"};if(OF.key)h.Authorization="Bearer "+OF.key;return h}; /* the key is optional: the proxy can hold it */
@@ -786,8 +793,23 @@ function offWas(p){ /* the price before the latest drop, when the API sends pric
   const c=offPr(p),h=(Array.isArray(p.price_history)?p.price_history:[]).filter(x=>x&&x.price>0).sort((a,b)=>String(b.date).localeCompare(String(a.date))),prev=h.find(x=>x.price!==c);
   return prev&&c&&prev.price>c?prev.price:null;
 }
-function offBest(res,n){ /* lowest unit price among products whose name contains the item */
-  const w=n.toLowerCase(),ok=res.filter(p=>offPr(p)>0),m=ok.filter(p=>p.name.toLowerCase().includes(w)),pool=m.length?m:ok,k=p=>offUp(p)||offPr(p);
+function offBest(res,n){ /* Match the product name before comparing prices; never choose an unrelated cheapest item. */
+  const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9æøå]+/g," ").trim();
+  const wanted=norm(n).split(/\s+/).filter(w=>w.length>1 && !/^(?:og|eller|med|uten|av|til|stk|pakke|pakker)$/.test(w));
+  if(!wanted.length)return null;
+  const scored=res.filter(p=>p&&p.name&&offPr(p)>0).map(p=>{
+    const words=norm(p.name).split(/\s+/), exact=wanted.filter(w=>words.includes(w)).length;
+    /* Permit longer product words such as småpoteter for poteter, but not mel -> melkesjokolade. */
+    const partial=wanted.filter(w=>!words.includes(w)&&w.length>=6&&words.some(v=>v.startsWith(w)||w.startsWith(v))).length;
+    const score=(exact*3+partial*1)/wanted.length;
+    return {p,score,exact,partial};
+  }).filter(x=>x.exact>0 || x.partial>0);
+  if(!scored.length)return null;
+  scored.sort((a,b)=>b.score-a.score || b.exact-a.exact || (offUp(a.p)||offPr(a.p))-(offUp(b.p)||offPr(b.p)));
+  const best=scored[0];
+  /* Require a meaningful name match; don't silently return the cheapest unrelated result. */
+  if(best.score<2.5 || (wanted.length===1 && best.exact===0))return null;
+  const pool=scored.filter(x=>x.score===best.score && x.exact===best.exact).map(x=>x.p),k=p=>offUp(p)||offPr(p);
   return pool.reduce((b,p)=>!b||k(p)<k(b)?p:b,null);
 }
 const offName=t=>ingName(String(t).replace(/&#\d+;/g,"").replace(/\s*\([^)]*\)/g,"")).toLowerCase();
@@ -812,14 +834,14 @@ async function offList(){
   o.list=[];o.listBusy=true;offRender();
   for(const n of names){
     const c=offCache[n],hit=c&&Date.now()-c.t<6e5;
-    try{o.list.push({n,p:offBest(await offGet(n),n)})}catch(e){o.err=offErr(e);break}
+    try{const results=await offGet(n);let p=null;const link=offLinks[offNorm(n)];if(link){p=results.find(x=>offNorm(x.name)===offNorm(link.name)&&(!link.store||offStore(x)===link.store))||null;if(!p){const linkedResults=await offGet(link.name);p=linkedResults.find(x=>offNorm(x.name)===offNorm(link.name)&&(!link.store||offStore(x)===link.store))||null}}o.list.push({n,p})}catch(e){o.err=offErr(e);break}
     offRender();if(!hit)await new Promise(r=>setTimeout(r,1000)); /* the free key allows 60 requests a minute */
   }
   o.listBusy=false;offRender();
 }
 function offRow(p,i){
   const o=S.off,c=offPr(p),w=offWas(p),u=offUp(p),ul=offUl(p),dn=o.done.has(i);
-  return `<li>${p.image?`<img src="${offQa(p.image)}" alt="" loading="lazy">`:""}<div class="nm">${shopEsc(p.name)}<small>${shopEsc(offStore(p))}${u?" · "+offFmt(u)+(ul?"/"+ul:""):""}</small></div><b>${offFmt(c)}${w?`<span class="off-was">${offFmt(w)}</span>`:""}</b><button class="ghost" data-off-add="${i}"${dn?" disabled":""}>${dn?"✓":U().offAdd}</button></li>`;
+  return `<li>${p.image?`<img src="${offQa(p.image)}" alt="" loading="lazy">`:""}<div class="nm">${shopEsc(p.name)}<small>${shopEsc(offStore(p))}${u?" · "+offFmt(u)+(ul?"/"+ul:""):""}</small></div><b>${offFmt(c)}${w?`<span class="off-was">${offFmt(w)}</span>`:""}</b><button class="ghost" data-off-add="${i}"${dn?" disabled":""}>${dn?"✓":U().offAdd}</button>${o.linkFor?`<button class="ghost" data-off-link="${i}">${U().offLinkPermanent}</button>`:""}</li>`;
 }
 function offersTab(){
   const u=U(),o=S.off;
@@ -832,18 +854,25 @@ function offersTab(){
   else if(o.sort==="unit")rows=[...rows].sort((a,b)=>(offUp(a)??1e9)-(offUp(b)??1e9));
   o.shown=rows;
   h+=`<div class="off-row"><input id="off-q" placeholder="${offQa(u.offPh)}" value="${offQa(o.q)}" autocomplete="off" enterkeyhint="search"><button class="ghost" data-off-search>${u.offSearch}</button></div>`;
+  if(o.linkFor)h+=`<p class="sub">${U().offLinkingFor}: <b>${shopEsc(o.linkFor)}</b></p>`;
   if(o.res)h+=`<div class="off-row"><select id="off-store"><option value="">${u.offAll}</option>${stores.map(s=>`<option${s===o.store?" selected":""}>${shopEsc(s)}</option>`).join("")}</select><select id="off-sort"><option value="rel"${o.sort==="rel"?" selected":""}>${u.offSortRel}</option><option value="price"${o.sort==="price"?" selected":""}>${u.offSortPrice}</option><option value="unit"${o.sort==="unit"?" selected":""}>${u.offSortUnit}</option></select></div>`;
   if(o.err)h+=`<p class="err" role="alert">${o.err}</p>`;
   if(o.busy)h+=`<p class="empty">${u.offLoading}</p>`;
   else if(o.res)h+=rows.length?`<ul class="off-list">${rows.map(offRow).join("")}</ul>`:`<p class="empty">${u.offNone}</p>`;
   h+=`<h3>${u.offListTitle}</h3><p class="sub">${u.offListSub}</p><button class="ghost" data-off-list${o.listBusy?" disabled":""}>${o.listBusy?u.offLoading:u.offListBtn}</button>`;
-  if(o.list)h+=`<ul class="off-list">${o.list.map(x=>x.p?`<li><div class="nm">${shopEsc(x.n.charAt(0).toUpperCase()+x.n.slice(1))}<small>${shopEsc(x.p.name)} · ${shopEsc(offStore(x.p))}</small></div><b>${offFmt(offPr(x.p))}</b></li>`:`<li><div class="nm">${shopEsc(x.n.charAt(0).toUpperCase()+x.n.slice(1))}<small>${u.offNoHit}</small></div></li>`).join("")}</ul>`;
+  if(o.list)h+=`<ul class="off-list">${o.list.map(x=>x.p?`<li><div class="nm">${shopEsc(x.n.charAt(0).toUpperCase()+x.n.slice(1))}<small>${shopEsc(x.p.name)} · ${shopEsc(offStore(x.p))}</small></div><b>${offFmt(offPr(x.p))}</b></li>`:`<li><div class="nm">${shopEsc(x.n.charAt(0).toUpperCase()+x.n.slice(1))}<small>${u.offNoHit}</small></div><button class="ghost" data-off-find="${offQa(x.n)}">${u.offSearchLink}</button></li>`).join("")}</ul>`;
+  h+=`<p><button class="ghost" data-off-manage>${u.offManageLinks} (${Object.keys(offLinks).length})</button></p>`;
+  if(o.manageLinks){const entries=Object.entries(offLinks);h+=`<h3>${u.offSavedLinks}</h3>${entries.length?`<ul class="off-list">${entries.map(([k,v])=>`<li><div class="nm">${shopEsc(v.itemName||k)}<small>${shopEsc(v.name)} · ${shopEsc(v.store||"")}</small></div><button class="ghost" data-off-edit="${offQa(k)}">${u.offEditLink}</button></li>`).join("")}</ul>`:`<p class="empty">${u.offNoSavedLinks}</p>`}`}
   return h+`<p><button class="ghost" data-off-clear>${u.offChange}</button></p>`;
 }
 document.addEventListener("click",e=>{
   const b=e.target.closest("button");if(!b)return;
   const a=n=>b.hasAttribute("data-off-"+n),o=S.off;
   if(a("search"))offSearch();
+  else if(a("find")){o.linkFor=b.dataset.offFind||"";o.q=o.linkFor;o.res=null;o.err="";o.store="";const inp=document.getElementById("off-q");if(inp)inp.value=o.q;offSearch()}
+  else if(a("link")){const p=o.shown[+b.dataset.offLink];if(p&&o.linkFor){offLinks[o.editKey||offNorm(o.linkFor)]={name:p.name,store:offStore(p),itemName:o.linkFor};try{localStorage.setItem(OFFLINKKEY,JSON.stringify(offLinks))}catch(e){}if(SY.code)sPut("offLinks/"+sk(o.editKey||offNorm(o.linkFor)),offLinks[o.editKey||offNorm(o.linkFor)]);const linked=o.linkFor;o.editKey="";o.manageLinks=true;o.linkFor="";o.q="";o.res=null;o.err=U().offLinked+": "+linked;o.list=null;offList()}}
+  else if(a("manage")){o.manageLinks=!o.manageLinks;render()}
+  else if(a("edit")){const k=b.dataset.offEdit,v=offLinks[k];if(v){o.editKey=k;o.linkFor=v.itemName||k;o.q=o.linkFor;o.res=null;o.err="";o.store="";o.sort="rel";o.manageLinks=false;offSearch()}}
   else if(a("list"))offList();
   else if(a("key")){
     const v=(document.getElementById("off-key")||{value:""}).value.trim();let px=(document.getElementById("off-proxy")||{value:""}).value.trim().replace(/\/+$/,"");
