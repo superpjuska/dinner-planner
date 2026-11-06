@@ -20,15 +20,30 @@
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 Figtree,system-ui,-apple-system,Segoe UI,sans-serif}
-#app{max-width:760px;margin:0 auto;padding:20px 16px 48px}
+#app{max-width:760px;margin:0 auto;padding:20px 16px 104px}
 h1{font-size:28px;font-weight:800;letter-spacing:-.02em;margin:0 0 14px}
 h2{font-size:22px;font-weight:800;letter-spacing:-.01em;margin:0}
 h3{font-size:15px;font-weight:600;margin:18px 0 6px}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,summary:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
-.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
-.tabs button{border:1px solid var(--line);background:none;border-radius:999px;padding:7px 16px;font-weight:600}
-.tabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.bnav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--card);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px))}
+.bnav-in{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;max-width:760px;margin:0 auto}
+.bnav button{display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:none;border-radius:12px;padding:4px 2px 2px;font-size:12px;font-weight:600;color:var(--mute);min-width:0}
+.bnav .ic{display:flex;align-items:center;justify-content:center;width:56px;height:30px;border-radius:999px}
+.bnav svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.bnav svg .dot{fill:currentColor;stroke:none}
+.bnav button.on{color:var(--acc)}
+.bnav button.on .ic{background:var(--soft)}
+.bnav button.on .lb{font-weight:800}
+.more-back{position:fixed;inset:0;z-index:18;width:100%;border:0;border-radius:0;background:rgba(0,0,0,.35);padding:0}
+.more{position:fixed;z-index:19;right:max(12px,calc(50% - 368px));bottom:calc(76px + env(safe-area-inset-bottom,0px));width:min(280px,calc(100vw - 24px));background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:6px}
+.more .mi{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border:0;background:none;border-radius:10px;padding:12px 12px;font-weight:600;text-align:left}
+.more .mi:hover{background:var(--soft)}
+.more .mi.on{background:var(--soft);color:var(--acc)}
+.more .mi small{color:var(--mute);font-weight:600;font-size:13px}
+.more .mlang{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px 8px;margin-top:4px;border-top:1px solid var(--line);font-weight:600}
+.more .mlang .lang{padding-top:0}
+.more .mlang .lang button{padding:6px 12px}
 .week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:22px}
 .day{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:8px 4px;min-height:56px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
 .day b{font-size:14px}
@@ -171,7 +186,7 @@ const parseDisplayDate=value=>{
   const [,d,m,y]=match,date=new Date(+y,+m-1,+d);
   return date.getFullYear()===+y&&date.getMonth()===+m-1&&date.getDate()===+d?key(date):null;
 };
-let S={day:key(new Date()),view:key(new Date()).slice(0,7),tab:"plan",lang:/^(nb|nn|no)/i.test(navigator.language||"")?"no":"en",sug:{},pick:{}};
+let S={day:key(new Date()),view:key(new Date()).slice(0,7),tab:"plan",menu:false,lang:/^(nb|nn|no)/i.test(navigator.language||"")?"no":"en",sug:{},pick:{}};
 S.shopping=false;S.shopVisible=false;S.shopPicker=false;S.shopFrom="";S.shopTo="";S.shopDraftFrom="";S.shopDraftTo="";S.shopActive="";S.shopMonth="";S.shopChecked={};
 try{const x=JSON.parse(localStorage.getItem(KEY)||"null");if(x){const mon=new Date();mon.setDate(mon.getDate()-(mon.getDay()+6)%7);const mig=o=>{const r={};for(const k in o)r[/^\d$/.test(k)?key(new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+ +k)):k]=o[k];return r};S.sug=mig(x.sug||{});S.pick=mig(x.pick||{});if(x.lang)S.lang=x.lang;}}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({sug:S.sug,pick:S.pick,lang:S.lang}))}catch(e){}};
@@ -289,26 +304,7 @@ function shoppingList(){
   const rows=snap?Object.entries(S.shopItems).filter(([,x])=>!x.x).sort((a,b)=>a[1].o-b[1].o).map(([k,x])=>({k,t:x.t})):shoppingItems(meals).map(t=>({k:encodeURIComponent(from+"|"+to+"|"+t),t}));
   const li=r=>ed?`<li class="shop-edit"><input type="checkbox" data-shop-check="${r.k}"${S.shopChecked[r.k]?" checked":""}><input data-shop-item="${r.k}" value="${qa(r.t)}" aria-label="${U().shopItem}"><button class="ghost" data-shop-rm="${r.k}" aria-label="${U().shopRm}">✕</button></li>`:`<li><label><input type="checkbox" data-shop-check="${r.k}"${S.shopChecked[r.k]?" checked":""}> ${r.t}</label></li>`;
   const addRow=ed?`<li class="shop-edit"><div class="combo-box"><input id="shop-new" placeholder="${U().shopNew}" autocomplete="off"><button type="button" class="ghost" data-combo aria-label="${U().itemsPick}">▾</button><div class="combo-list" id="shop-combo" hidden>${Object.entries(S.groups).map(([id,g])=>`<button type="button" data-combo-group="${qa(id)}">📦 ${g.name} (${(g.items||[]).length})</button>`).join("")}${catalog().map(c=>`<button type="button" data-combo-pick="${qa(c.n)}">${c.n}</button>`).join("")}</div></div><button class="ghost" data-shop-add>${U().shopAdd}</button></li>`:"";
-  return `<section class="shopping" id="shopping-list"${S.shopVisible?"":" hidden"}><h2>${U().shoppingFor(range)}</h2>${rows.length||ed?`<ul>${rows.map(li).join("")}${addRow}</ul>`:`<p class="empty">${U().noShopping}</p>`}${S.shopAsk?`<div class="shop-ask"><p>${U().archAsk}${SY.code?" "+U().delShopAll:""}</p><p style="display:flex;gap:8px;flex-wrap:wrap;margin:0"><button class="ghost" data-shop-archive>${U().archSave}</button><button class="ghost" data-shop-discard>${U().archDiscard}</button><button class="ghost" data-shop-cancel-del>${U().cancel}</button></p></div>`:`<p style="margin:18px 0 0;display:flex;gap:8px;flex-wrap:wrap"><button class="ghost" data-shop-copy>${U().shopCopy}</button>${ed?`<button class="ghost" data-shop-done>${U().shopDone}</button>`:`<button class="ghost" data-shop-edit>${U().shopEdit}</button>`}<button class="ghost" data-shop-delete>${U().delShop}</button></p>`}</section>`;
-}
-/* ===== copy shopping list for Apple Notes: title, dinners, separator, groceries (plain text, one per line) ===== */
-const shopPlain=t=>{const e=document.createElement("textarea");e.innerHTML=String(t);return e.value}; /* items are stored HTML-escaped */
-function shopCopyText(){
-  const from=S.shopFrom||S.day,to=S.shopTo||S.day,all=A(),L=S.lang==="no"?"nb-NO":"en-GB";
-  const meals=Object.entries(S.pick).filter(([day,id])=>day>=from&&day<=to&&all.some(d=>d.id===id)).map(([day,id])=>({day,id,d:all.find(x=>x.id===id)})).sort((a,b)=>a.day<b.day?-1:a.day>b.day?1:0);
-  const items=S.shopItems!=null?Object.values(S.shopItems).filter(x=>!x.x).sort((a,b)=>a.o-b.o).map(x=>x.t):shoppingItems(meals);
-  const fmt=d=>parse(d).toLocaleDateString(L,{day:"numeric",month:"short",year:"numeric"});
-  const dinners=meals.map(m=>{const g=get(m.id);return parse(m.day).toLocaleDateString(L,{weekday:"short",day:"numeric",month:"short"})+": "+(g.e?g.e+" ":"")+shopPlain(g.n)});
-  return [shopPlain(U().shoppingFor(fmt(from)+" – "+fmt(to))),...dinners,"━━━━━ 🛒 ━━━━━",...items.map(shopPlain)].join("\n");
-}
-async function shopCopy(b){
-  const text=shopCopyText(),u=U();let ok=false;
-  try{await navigator.clipboard.writeText(text);ok=true}catch(e){
-    const t=document.createElement("textarea");t.value=text;t.setAttribute("readonly","");t.style.cssText="position:fixed;top:0;left:0;opacity:0";document.body.appendChild(t);t.select();t.setSelectionRange(0,text.length);
-    try{ok=document.execCommand("copy")}catch(_){}t.remove();
-  }
-  b.textContent=ok?u.shopCopied:u.shopCopyFail;
-  setTimeout(()=>{if(b.isConnected)b.textContent=U().shopCopy},2000);
+  return `<section class="shopping" id="shopping-list"${S.shopVisible?"":" hidden"}><h2>${U().shoppingFor(range)}</h2>${rows.length||ed?`<ul>${rows.map(li).join("")}${addRow}</ul>`:`<p class="empty">${U().noShopping}</p>`}${S.shopAsk?`<div class="shop-ask"><p>${U().archAsk}${SY.code?" "+U().delShopAll:""}</p><p style="display:flex;gap:8px;flex-wrap:wrap;margin:0"><button class="ghost" data-shop-archive>${U().archSave}</button><button class="ghost" data-shop-discard>${U().archDiscard}</button><button class="ghost" data-shop-cancel-del>${U().cancel}</button></p></div>`:`<p style="margin:18px 0 0;display:flex;gap:8px;flex-wrap:wrap">${ed?`<button class="ghost" data-shop-done>${U().shopDone}</button>`:`<button class="ghost" data-shop-edit>${U().shopEdit}</button>`}<button class="ghost" data-shop-delete>${U().delShop}</button></p>`}</section>`;
 }
 function cal(){
   const [y,m]=S.view.split("-").map(Number),today=key(new Date());
@@ -377,19 +373,31 @@ document.addEventListener("change",e=>{
   S.pick[d]=id;S.sug[d]=[id,...(S.sug[d]||[]).filter(x=>x!==id).slice(0,2)];
   save();sPut("pick/"+d,id);sPut("sug/"+d,S.sug[d]);shopSync();render();
 });
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.menu){S.menu=false;render()}});
 document.addEventListener("input",e=>{
   if(e.target.id==="shop-from")S.shopDraftFrom=e.target.value;
   else if(e.target.id==="shop-to")S.shopDraftTo=e.target.value;
 });
 function render(){DAYS=U().days;FULL=U().full;document.documentElement.lang=S.lang==="no"?"nb-NO":"en-GB";document.title=U().title;
-  document.getElementById("app").innerHTML=`<div class="bar"><h1>${U().title}</h1><div class="lang" role="group" aria-label="Language">${FBON?`<button class="sync${SY.code?"":" off"}" data-sync aria-label="${U().syncTip}">${sLabel()}</button>`:""}<button data-lang="en" class="${S.lang==="en"?"on":""}">EN</button><button data-lang="no" class="${S.lang==="no"?"on":""}">NO</button></div></div><div class="tabs"><button data-tab="plan" class="${S.tab==="plan"?"on":""}">${U().plan}</button><button data-tab="all" class="${S.tab==="all"?"on":""}">${U().all} (${A().length})</button><button data-tab="add" class="${S.tab==="add"?"on":""}">${U().add}</button><button data-tab="items" class="${S.tab==="items"?"on":""}">${U().itemsTab} (${catalog().length})</button><button data-tab="offers" class="${S.tab==="offers"?"on":""}">${U().offTab}</button><button data-tab="archive" class="${S.tab==="archive"?"on":""}">${U().archTab}${Object.keys(S.archive).length?` (${Object.keys(S.archive).length})`:""}</button></div>`+(S.tab==="plan"?plan():S.tab==="add"?form():S.tab==="archive"?archiveTab():S.tab==="items"?itemsTab():S.tab==="offers"?offersTab():all());
+  const u=U(),on=t=>S.tab===t?" on":"",inMore=["items","add","archive"].includes(S.tab),nArch=Object.keys(S.archive).length,
+    ic={plan:'<path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/>',
+        all:'<path d="M7 3v7a2 2 0 0 0 2 2h0V21M5 3v6M9 3v6M15 21V3c-2 1-3.5 3.5-3.5 7 0 1.7.9 2.5 3.5 2.5"/>',
+        offers:'<path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7a1 1 0 0 1 .7.3l7.6 7.6a1 1 0 0 1 0 1.4l-7.2 7.2a1 1 0 0 1-1.4 0l-7.6-7.6a1 1 0 0 1-.3-.7z"/><circle cx="8.5" cy="8.5" r="1.3" class="dot"/>',
+        more:'<circle cx="5.5" cy="12" r="1.7" class="dot"/><circle cx="12" cy="12" r="1.7" class="dot"/><circle cx="18.5" cy="12" r="1.7" class="dot"/>'},
+    nb=(t,l)=>`<button data-tab="${t}" class="${S.tab===t&&!S.menu?"on":""}"${S.tab===t?' aria-current="page"':""}><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true">${ic[t]}</svg></span><span class="lb">${l}</span></button>`,
+    mi=(t,l,n)=>`<button class="mi${on(t)}" data-tab="${t}"${S.tab===t?' aria-current="page"':""}><span>${l}</span>${n?`<small>${n}</small>`:""}</button>`;
+  document.getElementById("app").innerHTML=`<div class="bar"><h1>${u.title}</h1>${FBON?`<div class="lang"><button class="sync${SY.code?"":" off"}" data-sync aria-label="${u.syncTip}">${sLabel()}</button></div>`:""}</div>`+
+  (S.tab==="plan"?plan():S.tab==="add"?form():S.tab==="archive"?archiveTab():S.tab==="items"?itemsTab():S.tab==="offers"?offersTab():all())+
+  (S.menu?`<button class="more-back" data-menu-close aria-label="${u.close}"></button><div class="more" id="more-menu" role="menu">${mi("items",u.itemsTab,catalog().length)}${mi("add",u.add)}${mi("archive",u.archTab,nArch||"")}<div class="mlang"><span>${u.langL}</span><div class="lang" role="group" aria-label="${u.langL}"><button data-lang="en" class="${S.lang==="en"?"on":""}">EN</button><button data-lang="no" class="${S.lang==="no"?"on":""}">NO</button></div></div></div>`:"")+
+  `<nav class="bnav" aria-label="${u.title}"><div class="bnav-in">${nb("plan",u.plan)}${nb("all",u.dinnersNav)}${nb("offers",u.offTab)}<button data-menu class="${inMore||S.menu?"on":""}" aria-haspopup="menu" aria-expanded="${S.menu?"true":"false"}" aria-label="${u.moreNav}"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true">${ic.more}</svg></span><span class="lb">${u.moreNav}</span></button></div></nav>`;
 }
 document.addEventListener("click",e=>{
   const b=e.target.closest("button");if(!b)return;
   const q=a=>b.hasAttribute("data-"+a);
-  if(q("shop-copy")){shopCopy(b);return}
   const planBtn=q("pick")||q("clear")||q("del")||q("restore")||q("save");if(planBtn)shopAdopt(); /* dinner changes: update the shopping list afterwards */
-  if(q("tab")){S.tab=b.dataset.tab;S.editId=null}
+  if(q("menu")){S.menu=!S.menu}
+  else if(q("menu-close")){S.menu=false}
+  else if(q("tab")){S.tab=b.dataset.tab;S.editId=null;S.menu=false;setTimeout(()=>scrollTo(0,0),0)}
   else if(q("lang")){S.lang=b.dataset.lang;save();}
   else if(q("save")){if(!add())return;S.tab="all";}
   else if(q("restore")){H=[];saveH();S.sug={};sPut("hidden",null);sPut("sug",null);}
@@ -479,10 +487,10 @@ Object.assign(UI.en,{delShop:"Delete shopping list",delShopAsk:"Delete the shopp
 Object.assign(UI.no,{delShop:"Slett handlelisten",delShopAsk:"Slette handlelisten?",delShopAll:"Den fjernes for alle med familiekoden din."});
 Object.assign(UI.en,{edit:"Edit dinner",editTitle:"Edit dinner",saveEdit:"Save changes",cancel:"Cancel"});
 Object.assign(UI.no,{edit:"Rediger middag",editTitle:"Rediger middag",saveEdit:"Lagre endringer",cancel:"Avbryt"});
-Object.assign(UI.en,{shopCopy:"📋 Copy for Notes",shopCopied:"Copied ✓",shopCopyFail:"Could not copy"});
-Object.assign(UI.no,{shopCopy:"📋 Kopier til Notater",shopCopied:"Kopiert ✓",shopCopyFail:"Kunne ikke kopiere"});
 Object.assign(UI.en,{shopEdit:"Edit list",shopDone:"Done",shopNew:"Add item...",shopAdd:"Add",shopRm:"Remove",shopItem:"Item"});
 Object.assign(UI.no,{shopEdit:"Rediger liste",shopDone:"Ferdig",shopNew:"Legg til vare...",shopAdd:"Legg til",shopRm:"Fjern",shopItem:"Vare"});
+Object.assign(UI.en,{dinnersNav:"Dinners",moreNav:"More",langL:"Language",close:"Close menu"});
+Object.assign(UI.no,{dinnersNav:"Middager",moreNav:"Mer",langL:"Språk",close:"Lukk meny"});
 Object.assign(UI.en,{archTab:"Archive",archSave:"Save to archive",archDiscard:"Discard",archAsk:"What should happen to this shopping list?",archEmpty:"No archived lists yet. When you delete a shopping list you can save it here.",archUse:"Use again",archDel:"Delete",archDelAsk:"Delete this archived list?",archReplace:"Replace the current shopping list?",archItems:"items",archSaved:"Saved"});
 Object.assign(UI.no,{archTab:"Arkiv",archSave:"Lagre i arkiv",archDiscard:"Forkast",archAsk:"Hva skal skje med denne handlelisten?",archEmpty:"Ingen arkiverte lister ennå. Når du sletter en handleliste kan du lagre den her.",archUse:"Bruk igjen",archDel:"Slett",archDelAsk:"Slette denne arkiverte listen?",archReplace:"Erstatte gjeldende handleliste?",archItems:"varer",archSaved:"Lagret"});
 const AK=KEY+"-archive";
